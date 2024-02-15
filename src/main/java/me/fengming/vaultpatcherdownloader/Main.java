@@ -68,37 +68,39 @@ public class Main implements VaultPatcherPlugin {
         HashSet<String> modIds = new HashSet<>();
         Arrays.stream(path.resolve("mods").toFile().listFiles()).map(this::getModId).forEach(modIds::add);
         String downloadSource = configMap.get("download_source");
+        String indexUrl;
 
         if (downloadSource.equalsIgnoreCase("auto")) {
-
+            indexUrl = "https://vpdl.nvoid.me/index.json";
         } else if (downloadSource.equalsIgnoreCase("config")) {
-            try {
-                String indexJson = Downloader.getString(new URL(configMap.get("index")));
-                Index index = GSON.fromJson(indexJson, new TypeToken<Index>() {}.getType());
-                List<Index.Mod> mods = new ArrayList<>();
-                index.mods.stream().filter(mod -> modIds.contains(mod.name) && matchVersion(mod.version)).forEach(mods::add);
-                for (Index.Mod mod : mods) {
-                    Path patchFile = path.resolve("config").resolve("vaultpatcher_asm").resolve(mod.name + ".json");
-                    try (BufferedWriter bw = Files.newBufferedWriter(patchFile, StandardCharsets.UTF_8)) {
-                        String patch = Downloader.getString(mod.url);
-                        if (Files.notExists(patchFile)) {
-                            Files.createDirectories(patchFile.getParent());
-                            Files.createFile(patchFile);
-                        }
-                        bw.write(patch);
-                        bw.flush();
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed write the patch: " + e);
-                    }
-                    addMod.add(mod.name);
-                }
-            } catch (MalformedURLException e) {
-                throw new IllegalArgumentException("Unknown URL: " + e);
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed downloading index: " + e);
-            }
+            indexUrl = configMap.get("index");
         } else {
             throw new IllegalArgumentException("Unknown download source: " + downloadSource);
+        }
+        try {
+            String indexJson = Downloader.getString(new URL(indexUrl));
+            Index index = GSON.fromJson(indexJson, new TypeToken<Index>() {}.getType());
+            List<Index.Mod> mods = new ArrayList<>();
+            index.mods.stream().filter(mod -> modIds.contains(mod.name) && matchVersion(mod.version)).forEach(mods::add);
+            for (Index.Mod mod : mods) {
+                Path patchFile = path.resolve("config").resolve("vaultpatcher_asm").resolve(mod.name + ".json");
+                try (BufferedWriter bw = Files.newBufferedWriter(patchFile, StandardCharsets.UTF_8)) {
+                    String patch = Downloader.getString(new URL(mod.url.replace("{root}", index.root)));
+                    if (Files.notExists(patchFile)) {
+                        Files.createDirectories(patchFile.getParent());
+                        Files.createFile(patchFile);
+                    }
+                    bw.write(patch);
+                    bw.flush();
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed write the patch: " + e);
+                }
+                addMod.add(mod.name);
+            }
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Unknown URL: " + e);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Failed downloading index: " + e);
         }
     }
 
