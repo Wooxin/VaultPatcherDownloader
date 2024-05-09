@@ -108,7 +108,7 @@ public class Main implements VaultPatcherPlugin {
     public void onLoadConfig(Phase phase) {
         if (phase == Phase.AFTER) {
             addMod.stream().filter(e -> !VaultPatcherConfig.mods.contains(e)).forEach(VaultPatcherConfig.mods::add);
-            VaultPatcherConfig.mods.addAll(addMod);
+            // VaultPatcherConfig.mods.addAll(addMod);
             try {
                 VaultPatcherConfig.save();
             } catch (IOException e) {
