@@ -65,8 +65,21 @@ public class Main implements VaultPatcherPlugin {
             throw new RuntimeException("Failed to read config file: " + e);
         }
 
+//        HashSet<String> modIds = new HashSet<>();
+//        Arrays.stream(path.resolve("mods").toFile().listFiles()).map(this::getModId).forEach(modIds::add);
+
         HashSet<String> modIds = new HashSet<>();
-        Arrays.stream(path.resolve("mods").toFile().listFiles()).map(this::getModId).forEach(modIds::add);
+        File modsDir = path.resolve("mods").toFile();
+
+        File[] files = modsDir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    modIds.add(getModId(file));
+                }
+            }
+        }
+
         String downloadSource = configMap.get("download_source");
         String indexUrl;
 
